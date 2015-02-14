@@ -3,7 +3,7 @@ import java.lang.reflect.Method;
 
 
 public class Solution {
-	public static String questionName = "WordLadderII";
+	public static String questionName = "MinimumDepthofBinaryTree";
 	
 	public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, NoSuchMethodException, SecurityException, IllegalArgumentException, InvocationTargetException {
 		Class question = Class.forName(questionName);
