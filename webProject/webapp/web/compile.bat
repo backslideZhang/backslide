@@ -1,0 +1,1 @@
+python javascript\closure-library\closure\bin\build\closurebuilder.py --root=javascript\ --namespace="pku.startTheWorld" --output_mode=compiled --compiler_jar=compiler.jar > javascript\compiled\compiled.js

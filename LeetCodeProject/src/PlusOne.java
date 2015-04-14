@@ -2,7 +2,7 @@
 
 public class PlusOne {
 	public void solution(){
-		System.out.println(plusOne(new int[]{}));
+		System.out.println(plusOne(new int[]{1,2,3,4,5,6}));
 	}
 	
 	public int[] plusOne(int[] digits) {

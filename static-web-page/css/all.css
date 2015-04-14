@@ -1,0 +1,58 @@
+#background {
+    height: auto;
+    width: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #00529b;
+}
+
+#title {
+    color:#ffffff;
+    font-family: "黑体";
+    position: relative;
+    display: inline-block;
+    font-size: 30px;
+}
+
+#userInfo {
+    color:#ffffff;
+    font-family: "黑体";
+    font-size: 30px;
+    position: relative;
+    display: inline-block;
+    float: right;
+}
+
+#banner {
+    margin: 30px 60px 60px;
+}
+
+#mainBody {
+    margin-left: 60px;
+    margin-right: 60px;
+}
+
+#homePage {
+    text-align: left;
+}
+
+.itemBtn {
+    background-color: #0088d1;
+    color: #ffffff;
+    font-size: 30px;
+    text-align: center;
+    display: inline-block;
+    width: 32%;
+    height: 100px;
+    margin-right: 10px;
+    margin-bottom: 10px;
+    position: relative;
+}
+
+#mapContainer {
+    width: 800px;
+    height: 600px;
+}

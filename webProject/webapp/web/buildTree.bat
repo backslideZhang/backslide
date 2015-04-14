@@ -1,0 +1,1 @@
+python javascript\closure-library\closure\bin\build\closurebuilder.py --root=javascript\ --namespace="pku.startTheWorld"
