@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Caller</title>
+</head>
+<body>
+<video id="localVideo" autoplay></video>
+<video id="remoteVideo" autoplay></video>
+<script type="text/javascript">
+    (function(){
+        var localVideo = document.getElementById("localVideo");
+        var remoteVideo = document.getElementById("remoteVideo");
+        var signalingChannel = (function(){
+            var socket;
+            if (!window.WebSocket) {
+                window.WebSocket = window.MozWebSocket;
+            }
+            if (window.WebSocket) {
+                socket = new WebSocket("wss://162.105.75.153:8443/websocket");
+            } else {
+                alert("Your browser does not support Web Socket.");
+            }
+            return socket;
+        })();
+        var pc;
+        function start() {
+            pc = new webkitRTCPeerConnection({
+                iceServers : []
+            });
+            pc.onaddstream = function(e) {
+                remoteVideo.src = URL.createObjectURL(e.stream);
+            };
+            if (navigator.getUserMedia) {
+                navigator.getUserMedia('video', function(stream) {
+                    localVideo.src = stream;
+                    pc.addStream(stream);
+                }, function(e) {
+                    console.log(e);
+                });
+            } else if (navigator.webkitGetUserMedia) {
+                navigator.webkitGetUserMedia({video:true}, function(stream) {
+                    localVideo.src = URL.createObjectURL(stream);
+                    pc.addStream(stream);
+                    pc.createAnswer(pc.remoteDescription, function(desc) {
+                        pc.setLocalDescription(desc);
+                        signalingChannel.send(JSON.stringify({
+                            "type" : "callee",
+                            "sdp": desc
+                        }));
+                    });
+                }, function(e) {
+                    console.log(e);
+                });
+            }
+        }
+        signalingChannel.onmessage = function(e) {
+            if (!pc) {
+                start();
+            }
+            var signal = JSON.parse(e.data);
+            if (signal.sdp) {
+                pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
+            }
+        };
+    })();
+</script>
+</body>
+</html>

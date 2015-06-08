@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebRTC</title>
+</head>
+<body>
+<video id="localVideo" autoplay></video>
+<br />
+<button id="btn">click</button>
+<script>
+    var button = document.getElementById('btn');
+    var video = document.getElementById('localVideo');
+    (function() {
+        button.addEventListener('click', function (e) {
+            if (navigator.getUserMedia) {
+                navigator.getUserMedia('video', function(stream) {
+                    video.src = stream;
+                }, function(e) {
+                    console.log(e);
+                })
+            } else if (navigator.webkitGetUserMedia) {
+                navigator.webkitGetUserMedia({video:true}, function(stream) {
+                    video.src = URL.createObjectURL(stream);
+                }, function(e) {
+                    console.log(e);
+                });
+            }
+        }, false);
+    })();
+</script>
+</body>
+</html>
