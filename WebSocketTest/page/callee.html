@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Caller</title>
+    <title>Callee</title>
 </head>
 <body>
 <video id="localVideo" autoplay></video>
@@ -10,58 +10,109 @@
     (function(){
         var localVideo = document.getElementById("localVideo");
         var remoteVideo = document.getElementById("remoteVideo");
-        var signalingChannel = (function(){
+        var button = document.getElementById("button");
+        var signalingChannel;
+        var pc;
+
+        signalingChannel = (function(){
             var socket;
             if (!window.WebSocket) {
-                window.WebSocket = window.MozWebSocket;
+                if (!!window.MozWebSocket) {
+                    window.WebSocket = window.MozWebSocket;
+                }
             }
             if (window.WebSocket) {
-                socket = new WebSocket("wss://162.105.75.153:8443/websocket");
+                socket = new WebSocket("ws://127.0.0.1:8080/websocket");
+                socket.onclose = function(e) {
+                    console.log('ws closed!');
+                };
+                socket.onopen = function(e) {
+                    console.log('ws opened!');
+                };
+                socket.onmessage = function(e) {
+                    if (!pc) {
+                        start();
+                    }
+                    if (!pc) {
+                        console.log('init PeerConnection Failed!');
+                        return;
+                    }
+                    var signal = JSON.parse(e.data);
+                    if (signal.sdp) {
+                        pc.setRemoteDescription(new RTCSessionDescription(signal.sdp), function() {});
+                    }
+                    if (!!signal.candidate) {
+                        pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+                    }
+                };
             } else {
                 alert("Your browser does not support Web Socket.");
             }
             return socket;
         })();
-        var pc;
+
         function start() {
-            pc = new webkitRTCPeerConnection({
-                iceServers : []
-            });
+            if (!window.RTCPeerConnection) {
+                if (!!window.webkitRTCPeerConnection) {
+                    window.RTCPeerConnection = window.webkitRTCPeerConnection;
+                } else if (!!window.mozRTCPeerConnection) {
+                    window.RTCPeerConnection = window.mozRTCPeerConnection;
+                } else if (!!window.msRTCPeerConnection) {
+                    window.RTCPeerConnection = window.msRTCPeerConnection;
+                }
+            }
+            if (!navigator.getUserMedia) {
+                if (!!navigator.webkitGetUserMedia) {
+                    navigator.getUserMedia = navigator.webkitGetUserMedia;
+                } else if (!!navigator.mozGetUserMedia) {
+                    navigator.getUserMedia = navigator.mozGetUserMedia;
+                } else if (!!navigator.msGetUserMedia) {
+                    navigator.getUserMedia = navigator.msGetUserMedia;
+                }
+            }
+            if (!window.RTCPeerConnection || !navigator.getUserMedia) {
+                alert("Your browser does not support WebRTC.");
+                return;
+            }
+            pc = new RTCPeerConnection(null);
+            pc.onicecandidate = function(e) {
+                if (!!e.candidate) {
+                    signalingChannel.send(JSON.stringify({
+                        "type" : "callee",
+                        "candidate": e.candidate
+                    }));
+                }
+            };
             pc.onaddstream = function(e) {
                 remoteVideo.src = URL.createObjectURL(e.stream);
+                remoteVideo.controls = true;
             };
             if (navigator.getUserMedia) {
-                navigator.getUserMedia('video', function(stream) {
-                    localVideo.src = stream;
-                    pc.addStream(stream);
-                }, function(e) {
-                    console.log(e);
-                });
-            } else if (navigator.webkitGetUserMedia) {
-                navigator.webkitGetUserMedia({video:true}, function(stream) {
+                navigator.getUserMedia({video:true}, function(stream) {
                     localVideo.src = URL.createObjectURL(stream);
+                    localVideo.controls = true;
                     pc.addStream(stream);
-                    pc.createAnswer(pc.remoteDescription, function(desc) {
-                        pc.setLocalDescription(desc);
-                        signalingChannel.send(JSON.stringify({
-                            "type" : "callee",
-                            "sdp": desc
-                        }));
+                    pc.createAnswer(function(desc) {
+                        pc.setLocalDescription(desc, function() {
+                            signalingChannel.send(JSON.stringify({
+                                "type" : "callee",
+                                "sdp": desc
+                            }));
+                        });
                     });
                 }, function(e) {
                     console.log(e);
+                    pc.createAnswer(function(desc) {
+                        pc.setLocalDescription(desc, function() {
+                            signalingChannel.send(JSON.stringify({
+                                "type" : "callee",
+                                "sdp": desc
+                            }));
+                        });
+                    });
                 });
             }
         }
-        signalingChannel.onmessage = function(e) {
-            if (!pc) {
-                start();
-            }
-            var signal = JSON.parse(e.data);
-            if (signal.sdp) {
-                pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
-            }
-        };
     })();
 </script>
 </body>

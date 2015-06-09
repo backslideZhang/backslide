@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OnePage</title>
+</head>
+<body>
+<video id="localVideo" autoplay></video>
+<video id="remoteVideo" autoplay></video>
+<br />
+<button id="button">call</button>
+<script type="text/javascript">
+    (function(){
+        var localVideo = document.getElementById("localVideo");
+        var remoteVideo = document.getElementById("remoteVideo");
+        var button = document.getElementById("button");
+        button.addEventListener("click", function(e) {
+            start();
+        });
+        var pc1, pc2;
+        function start() {
+            pc1 = new webkitRTCPeerConnection(null);
+            pc2 = new webkitRTCPeerConnection(null);
+            pc1.onicecandidate = function(e) {
+                if (e.candidate != null) {
+                    pc2.addIceCandidate(e.candidate);
+                }
+            };
+            pc2.onicecandidate = function(e) {
+                if (e.candidate != null) {
+                    pc1.addIceCandidate(e.candidate);
+                }
+            };
+            pc2.onaddstream = function(e) {
+//                console.log('pc2 add stream');
+                console.log(e.stream);
+                remoteVideo.src = URL.createObjectURL(e.stream);
+                remoteVideo.controls = true;
+            };
+            navigator.webkitGetUserMedia({video:true}, function(stream) {
+                console.log(stream);
+                localVideo.src = URL.createObjectURL(stream);
+                localVideo.controls = true;
+                pc1.addStream(stream);
+                pc1.createOffer(function(desc) {
+                    console.log('pc1 local desc : ',desc);
+                    pc1.setLocalDescription(desc);
+                    console.log('send offer');
+                    pc2.setRemoteDescription(desc);
+                    pc2.createAnswer(function(desc2) {
+                        pc2.setLocalDescription(desc2);
+                        console.log('pc1 remote desc : ',desc2);
+                        console.log('send answer');
+                        pc1.setRemoteDescription(desc2);
+                    });
+                });
+            }, function(e) {
+                console.log(e);
+            });
+        }
+    })();
+
+</script>
+</body>
+</html>
