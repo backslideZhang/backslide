@@ -13,9 +13,52 @@
         var localVideo = document.getElementById("localVideo");
         var remoteVideo = document.getElementById("remoteVideo");
         var button = document.getElementById("button");
-        var signalingChannel;
         var pc;
-        signalingChannel = (function(){
+        var pcConfig = {
+            "iceServers":[{
+                "url":"stun:162.105.75.225:3478"
+            }]
+        };
+
+        var errorLog = function(e) {
+            console.log(e);
+        };
+
+        var sendLocalDescription = function() {
+            signalingChannel.send(JSON.stringify({
+                "type" : "caller",
+                "sdp": pc.localDescription
+            }));
+        };
+
+        var onmessage = function(e) {
+            if (!pc) {
+                start();
+            }
+            var signal = JSON.parse(e.data);
+            if (!!signal.sdp) {
+                var desc = new RTCSessionDescription(signal.sdp);
+                if (desc.type == 'offer') {
+                    pc.setRemoteDescription(desc, function() {
+                        pc.createAnswer(function(localDesc) {
+                            if (pc.localDescription == localDesc) {
+                                sendLocalDescription();
+                            } else {
+                                pc.setLocalDescription(localDesc, sendLocalDescription, errorLog);
+                            }
+                        }, errorLog);
+                    }, errorLog);
+                } else {
+                    pc.setRemoteDescription(desc, function(){}, errorLog);
+                }
+            }
+            if (!!signal.candidate) {
+                var candidate = new RTCIceCandidate(signal.candidate);
+                pc.addIceCandidate(candidate);
+            }
+        };
+
+        var signalingChannel = (function(){
             var socket;
             if (!window.WebSocket) {
                 if (!!window.MozWebSocket) {
@@ -30,30 +73,14 @@
                 socket.onopen = function(e) {
                     console.log('ws opened!');
                 };
-                socket.onmessage = function(e) {
-                    if (!pc) {
-                        console.log('PeerConnection is undefined!');
-                        return;
-                    }
-                    var signal = JSON.parse(e.data);
-                    if (!!signal.sdp) {
-                        pc.setRemoteDescription(new RTCSessionDescription(signal.sdp), function() {});
-                    }
-                    if (!!signal.candidate) {
-                        pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
-                    }
-                };
+                socket.onmessage = onmessage;
             } else {
                 alert("Your browser does not support Web Socket.");
             }
             return socket;
         })();
 
-        button.addEventListener("click", function(e) {
-            start();
-        });
-
-        function start() {
+        var initWebRTC = function() {
             if (!window.RTCPeerConnection) {
                 if (!!window.webkitRTCPeerConnection) {
                     window.RTCPeerConnection = window.webkitRTCPeerConnection;
@@ -74,9 +101,17 @@
             }
             if (!window.RTCPeerConnection || !navigator.getUserMedia) {
                 alert("Your browser does not support WebRTC.");
-                return;
             }
-            pc = new RTCPeerConnection(null);
+        };
+
+        var start = function() {
+            initWebRTC();
+            pc = new RTCPeerConnection({
+                "iceServers":[{
+                    "url":"stun:162.105.75.225:3478"
+                }]
+            });
+
             pc.onicecandidate = function(e) {
                 if (!!e.candidate) {
                     signalingChannel.send(JSON.stringify({
@@ -85,6 +120,13 @@
                     }));
                 }
             };
+
+            pc.onnegotiationneeded = function() {
+                pc.createOffer(function(desc) {
+                    pc.setLocalDescription(desc, sendLocalDescription);
+                });
+            };
+
             pc.onaddstream = function(e) {
                 remoteVideo.src = URL.createObjectURL(e.stream);
                 remoteVideo.controls = true;
@@ -94,27 +136,13 @@
                     localVideo.src = URL.createObjectURL(stream);
                     localVideo.controls = true;
                     pc.addStream(stream);
-                    pc.createOffer(function(desc) {
-                        pc.setLocalDescription(desc, function() {
-                            signalingChannel.send(JSON.stringify({
-                                "type" : "caller",
-                                "sdp": desc
-                            }));
-                        });
-                    });
-                }, function(e) {
-                    console.log(e);
-                    pc.createOffer(function(desc) {
-                        pc.setLocalDescription(desc, function() {
-                            signalingChannel.send(JSON.stringify({
-                                "type" : "caller",
-                                "sdp": desc
-                            }));
-                        });
-                    });
-                });
+                }, errorLog);
             }
-        }
+        };
+
+        button.addEventListener("click", function(e) {
+            start();
+        });
     })();
 </script>
 </body>

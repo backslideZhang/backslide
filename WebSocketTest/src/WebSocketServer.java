@@ -20,7 +20,7 @@ public final class WebSocketServer {
 	public static String calleeIp = "";
 	public static String wsIp = "";
 
-	public static String serverIp = "162.105.75.153";
+	public static String serverIp = "162.105.75.225";
 
 	public static void main(String[] args) throws Exception {
 		final SslContext sslCtx;
